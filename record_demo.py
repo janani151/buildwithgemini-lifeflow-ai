@@ -35,9 +35,9 @@ async def record_demo():
         await page.click("#input")
         for char in prompt1:
             await page.keyboard.press(char)
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0.008)
         
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.3)
         await page.click("button[type='submit']")
 
         print("⏳ Waiting for Turn 1 response...")
@@ -45,7 +45,7 @@ async def record_demo():
             "() => { const bubbles = document.querySelectorAll('.msg.agent .bubble'); if (bubbles.length === 0) return false; const last = bubbles[bubbles.length - 1]; return last && !last.textContent.includes('Thinking'); }",
             timeout=45000
         )
-        await asyncio.sleep(4)
+        await asyncio.sleep(1.5)
 
         # Turn 2: Richer prompt with Tool Call & Calculation
         prompt2 = "Calculate my weekly bill total ($120 electricity + $85 groceries) and remaining budget from $300."
@@ -54,9 +54,9 @@ async def record_demo():
         await page.click("#input")
         for char in prompt2:
             await page.keyboard.press(char)
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0.008)
 
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.3)
         await page.click("button[type='submit']")
 
         print("⏳ Waiting for Turn 2 response...")
@@ -64,7 +64,26 @@ async def record_demo():
             "() => { const bubbles = document.querySelectorAll('.msg.agent .bubble'); if (bubbles.length < 2) return false; const last = bubbles[bubbles.length - 1]; return last && !last.textContent.includes('Thinking'); }",
             timeout=45000
         )
-        await asyncio.sleep(6)
+        await asyncio.sleep(1.5)
+
+        # Turn 3: Generated Image prompt
+        prompt3 = "Generate an achievement badge image for completing my task list today!"
+        print(f"💬 Sending Turn 3: {prompt3}")
+
+        await page.click("#input")
+        for char in prompt3:
+            await page.keyboard.press(char)
+            await asyncio.sleep(0.008)
+
+        await asyncio.sleep(0.3)
+        await page.click("button[type='submit']")
+
+        print("⏳ Waiting for Turn 3 response...")
+        await page.wait_for_function(
+            "() => { const bubbles = document.querySelectorAll('.msg.agent .bubble'); if (bubbles.length < 3) return false; const last = bubbles[bubbles.length - 1]; return last && !last.textContent.includes('Thinking'); }",
+            timeout=45000
+        )
+        await asyncio.sleep(3.0)
 
         await context.close()
         await browser.close()
@@ -76,7 +95,7 @@ async def record_demo():
     print(f"📹 Raw video recorded to: {raw_video_path}")
     return raw_video_path
 
-def generate_lofi_music(duration_sec=30, sample_rate=44100):
+def generate_lofi_music(duration_sec=35, sample_rate=44100):
     print("🎵 Generating upbeat lo-fi background music track...")
     t = np.linspace(0, duration_sec, int(sample_rate * duration_sec), False)
     chords = [
@@ -109,8 +128,8 @@ def generate_lofi_music(duration_sec=30, sample_rate=44100):
     return wav_path
 
 def merge_video_audio(video_path, audio_path, output_path):
-    print("🎬 Merging recorded video with background music using ffmpeg...")
-    cmd = f"ffmpeg -y -i {video_path} -i {audio_path} -c:v libx264 -preset fast -crf 22 -c:a aac -shortest {output_path}"
+    print("🎬 Merging recorded video with background music using ffmpeg (snappy 1.15x speedup)...")
+    cmd = f'ffmpeg -y -i {video_path} -i {audio_path} -vf "setpts=0.87*PTS" -c:v libx264 -preset fast -crf 22 -c:a aac -shortest {output_path}'
     ret = os.system(cmd)
     if ret != 0:
         raise RuntimeError(f"ffmpeg failed with exit code {ret}")
@@ -124,7 +143,7 @@ def generate_gif(video_path, gif_path):
 
 async def main():
     raw_vid = await record_demo()
-    audio_wav = generate_lofi_music(duration_sec=30)
+    audio_wav = generate_lofi_music(duration_sec=35)
     
     mp4_path = "/config/Desktop/Session1/demo.mp4"
     gif_path = "/config/Desktop/Session1/demo.gif"
@@ -136,4 +155,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
