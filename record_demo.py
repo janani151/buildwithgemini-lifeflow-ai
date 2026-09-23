@@ -41,8 +41,11 @@ async def record_demo():
         await page.click("button[type='submit']")
 
         print("⏳ Waiting for Turn 1 response...")
-        await page.wait_for_selector(".msg.agent .bubble", timeout=35000)
-        await asyncio.sleep(6)
+        await page.wait_for_function(
+            "() => { const bubbles = document.querySelectorAll('.msg.agent .bubble'); if (bubbles.length === 0) return false; const last = bubbles[bubbles.length - 1]; return last && !last.textContent.includes('Thinking'); }",
+            timeout=45000
+        )
+        await asyncio.sleep(4)
 
         # Turn 2: Richer prompt with Tool Call & Calculation
         prompt2 = "Calculate my weekly bill total ($120 electricity + $85 groceries) and remaining budget from $300."
@@ -57,8 +60,11 @@ async def record_demo():
         await page.click("button[type='submit']")
 
         print("⏳ Waiting for Turn 2 response...")
-        await page.wait_for_selector(".msg.agent .bubble", timeout=45000)
-        await asyncio.sleep(8)
+        await page.wait_for_function(
+            "() => { const bubbles = document.querySelectorAll('.msg.agent .bubble'); if (bubbles.length < 2) return false; const last = bubbles[bubbles.length - 1]; return last && !last.textContent.includes('Thinking'); }",
+            timeout=45000
+        )
+        await asyncio.sleep(6)
 
         await context.close()
         await browser.close()

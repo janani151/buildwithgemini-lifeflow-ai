@@ -815,6 +815,19 @@ function extractEmbeddedA2UI(text) {
     } catch (e) {}
   }
 
+  // 3. Check for bare JSON array or object containing A2UI payload
+  const trimmed = text.trim();
+  if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed) && parsed.some(x => x && (x.beginRendering || x.surfaceUpdate || x.dataModelUpdate))) {
+        items.push(...parsed);
+      } else if (parsed && (parsed.beginRendering || parsed.surfaceUpdate || parsed.dataModelUpdate)) {
+        items.push(parsed);
+      }
+    } catch (e) {}
+  }
+
   return items;
 }
 
@@ -829,6 +842,14 @@ function cleanTextAroundA2UI(text) {
     } catch(e) {}
     return m;
   });
+  const trimmed = clean.trim();
+  if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed) && parsed.some(x => x && (x.beginRendering || x.surfaceUpdate))) return '';
+      if (parsed && (parsed.beginRendering || parsed.surfaceUpdate)) return '';
+    } catch(e) {}
+  }
   return clean.trim();
 }
 
