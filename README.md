@@ -2,6 +2,8 @@
 
 A comprehensive, intelligent AI agent for personal daily organization, task prioritization, shopping lists, financial budget math, map navigation, and motivational progress media generation. Built on Google Cloud's **Agent Development Kit (ADK)** and deployed to **Vertex AI Agent Engine**.
 
+🌐 **Live Web Application**: [https://lifeflow-ai-258775721753.us-east4.run.app](https://lifeflow-ai-258775721753.us-east4.run.app)
+
 ![LifeFlow AI Demo](./demo.gif)
 
 > 📹 *Note: A standalone high-definition video player is also available in the repository as [`./demo.mp4`](./demo.mp4).*
