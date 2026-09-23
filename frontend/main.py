@@ -120,21 +120,11 @@ import re
 
 
 def _parse_a2ui_from_text(text: str) -> list[dict]:
-    """Parse embedded <a2ui-json> or <a2a_datapart_json> blocks from raw text."""
+    """Parse embedded <a2ui-json>, <a2a_datapart_json>, or markdown A2UI JSON blocks from raw text."""
     items = []
-    for match in re.finditer(r"<a2ui-json>\s*(.*?)\s*</a2ui-json>", text, re.DOTALL):
-        raw_json = match.group(1).strip()
-        try:
-            parsed = json.loads(raw_json)
-            if isinstance(parsed, list):
-                items.extend(parsed)
-            elif isinstance(parsed, dict):
-                items.append(parsed)
-        except Exception:
-            pass
-
-    for match in re.finditer(r"<a2a_datapart_json>\s*(.*?)\s*</a2a_datapart_json>", text, re.DOTALL):
-        raw_json = match.group(1).strip()
+    # 1. <a2ui-json> or <a2a_datapart_json>
+    for match in re.finditer(r"<(a2ui-json|a2a_datapart_json)>\s*(.*?)\s*</\1>", text, re.DOTALL):
+        raw_json = match.group(2).strip()
         try:
             parsed = json.loads(raw_json)
             if isinstance(parsed, dict) and "data" in parsed:
@@ -150,14 +140,40 @@ def _parse_a2ui_from_text(text: str) -> list[dict]:
         except Exception:
             pass
 
+    if items:
+        return items
+
+    # 2. Markdown ```json ... ``` blocks containing A2UI payload
+    for match in re.finditer(r"```(?:json)?\s*([\[{].*?[\]}])\s*```", text, re.DOTALL):
+        raw_json = match.group(1).strip()
+        try:
+            parsed = json.loads(raw_json)
+            if isinstance(parsed, list) and any(isinstance(x, dict) and any(k in x for k in ("beginRendering", "surfaceUpdate", "dataModelUpdate")) for x in parsed):
+                items.extend(parsed)
+            elif isinstance(parsed, dict) and any(k in parsed for k in ("beginRendering", "surfaceUpdate", "dataModelUpdate")):
+                items.append(parsed)
+        except Exception:
+            pass
+
     return items
 
 
 def _clean_text_around_a2ui(text: str) -> str:
-    """Remove <a2ui-json> and <a2a_datapart_json> tags from prose text."""
-    clean = re.sub(r"<a2ui-json>\s*(.*?)\s*</a2ui-json>", "", text, flags=re.DOTALL)
-    clean = re.sub(r"<a2a_datapart_json>\s*(.*?)\s*</a2a_datapart_json>", "", clean, flags=re.DOTALL)
+    """Remove <a2ui-json>, <a2a_datapart_json>, or markdown A2UI blocks from prose text."""
+    clean = re.sub(r"<(a2ui-json|a2a_datapart_json)>\s*(.*?)\s*</\1>", "", text, flags=re.DOTALL)
+    def _sub_code(m):
+        try:
+            parsed = json.loads(m.group(1).strip())
+            if isinstance(parsed, list) and any(isinstance(x, dict) and any(k in x for k in ("beginRendering", "surfaceUpdate")) for x in parsed):
+                return ""
+            if isinstance(parsed, dict) and any(k in parsed for k in ("beginRendering", "surfaceUpdate")):
+                return ""
+        except Exception:
+            pass
+        return m.group(0)
+    clean = re.sub(r"```(?:json)?\s*([\[{].*?[\]}])\s*```", _sub_code, clean, flags=re.DOTALL)
     return clean.strip()
+
 
 
 def _extract_parts(parts: list) -> list[dict]:

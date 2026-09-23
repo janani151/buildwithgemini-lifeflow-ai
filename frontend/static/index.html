@@ -13,7 +13,7 @@
   :root {
     --bg-dark: #070d14;
     --card-bg: rgba(15, 23, 42, 0.85);
-    --card-border: rgba(255, 255, 255, 0.08);
+    --card-border: rgba(255, 255, 255, 0.1);
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
     --accent: #10b981;
@@ -69,9 +69,11 @@
     box-shadow: 0 4px 16px var(--accent-glow);
   }
 
-  .brand-icon span {
-    color: #fff;
-    font-size: 24px;
+  .brand-icon img {
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    object-fit: cover;
   }
 
   .brand-info h1 {
@@ -203,11 +205,13 @@
   .msg-content {
     display: flex;
     flex-direction: column;
-    max-width: 82%;
+    max-width: 85%;
+    width: 100%;
   }
 
   .msg.user .msg-content {
     align-items: flex-end;
+    max-width: 80%;
   }
 
   .sender-name {
@@ -350,29 +354,67 @@
     transform: translateY(-1px);
   }
 
-  /* --- A2UI Component Styles --- */
+  /* --- Enhanced A2UI Card Component Styles --- */
   .a2card {
-    background: linear-gradient(145deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+    background: linear-gradient(145deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.96));
     border: 1px solid var(--card-border);
-    border-radius: 16px;
+    border-radius: 18px;
     padding: 1.3rem 1.5rem;
-    box-shadow: 0 8px 26px rgba(0,0,0,0.3);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
     max-width: 100%;
     width: 100%;
-    margin-top: 0.4rem;
+    margin-top: 0.5rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .a2card:hover {
+    border-color: rgba(16, 185, 129, 0.3);
+    box-shadow: 0 12px 36px rgba(0,0,0,0.4), 0 0 20px rgba(16, 185, 129, 0.1);
   }
   .a2card + .a2card { margin-top: 0.8rem; }
-  .a2col { display: flex; flex-direction: column; gap: 0.65rem; }
-  .a2row { display: flex; flex-direction: row; gap: 0.85rem; align-items: center; flex-wrap: wrap; }
+  .a2col { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; }
+  .a2row { display: flex; flex-direction: row; gap: 0.85rem; align-items: center; flex-wrap: wrap; width: 100%; }
   .a2row.between { justify-content: space-between; }
-  .a2text { margin: 0; line-height: 1.5; color: var(--text-main); }
-  .a2text.a2-h1 { font-size: 1.45rem; font-weight: 800; color: #fff; letter-spacing: -0.01em; }
-  .a2text.a2-h2 { font-size: 1.25rem; font-weight: 700; color: #fff; }
-  .a2text.a2-h3 { font-size: 1.1rem; font-weight: 600; color: #f8fafc; }
-  .a2text.a2-h4 { font-size: 0.98rem; font-weight: 600; color: #e2e8f0; }
-  .a2text.a2-caption { font-size: 0.84rem; color: var(--text-muted); }
+  .a2text { margin: 0; line-height: 1.55; color: var(--text-main); word-break: break-word; }
+  .a2text.a2-h1 { font-size: 1.4rem; font-weight: 800; color: #fff; letter-spacing: -0.01em; margin-bottom: 0.2rem; }
+  .a2text.a2-h2 { font-size: 1.2rem; font-weight: 700; color: #fff; margin-bottom: 0.15rem; }
+  .a2text.a2-h3 { font-size: 1.05rem; font-weight: 600; color: #f8fafc; }
+  .a2text.a2-h4 { font-size: 0.95rem; font-weight: 600; color: #e2e8f0; }
+  .a2text.a2-caption { font-size: 0.83rem; color: var(--text-muted); }
   .a2divider { border: none; border-top: 1px solid var(--card-border); margin: 0.6rem 0; width: 100%; }
-  .a2img { max-width: 100%; border-radius: 12px; display: block; box-shadow: 0 6px 20px rgba(0,0,0,0.35); border: 1px solid var(--card-border); margin: 0.5rem 0; }
+  .a2img { max-width: 100%; border-radius: 14px; display: block; box-shadow: 0 6px 22px rgba(0,0,0,0.4); border: 1px solid var(--card-border); margin: 0.5rem 0; object-fit: cover; }
+  .a2badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #34d399;
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+  .a2btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--accent-gradient);
+    color: #fff;
+    padding: 0.55rem 1.1rem;
+    border-radius: 12px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 14px var(--accent-glow);
+    transition: all 0.2s ease;
+  }
+  .a2btn:hover {
+    transform: translateY(-1px);
+    opacity: 0.95;
+  }
+  .a2spacer { height: 0.5rem; width: 100%; }
   .material-symbols-outlined { font-size: 1.25rem; vertical-align: middle; color: var(--accent); }
 
   @keyframes fadeIn {
@@ -386,7 +428,7 @@
 <header>
   <div class="brand">
     <div class="brand-icon" style="background: transparent; box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);">
-      <img src="https://storage.googleapis.com/life-organizer-assets-7b04b331/lifeflow_app_icon.png" alt="LifeFlow AI Icon" style="width: 100%; height: 100%; border-radius: 12px; object-fit: cover;">
+      <img src="https://storage.googleapis.com/life-organizer-assets-7b04b331/lifeflow_app_icon.png" alt="LifeFlow AI Icon">
     </div>
     <div class="brand-info">
       <h1>LifeFlow AI</h1>
@@ -483,23 +525,58 @@ function restartSession() {
 }
 
 /* ----------------------------------------------------------------------------
- * A2UI mini-renderer (v0.8 Basic Catalog subset).
+ * A2UI Comprehensive Dynamic Renderer (v0.8 Catalog + Fallbacks).
  * -------------------------------------------------------------------------- */
 
 function boundStr(v) {
   if (v == null) return "";
   if (typeof v === "string") return v;
-  if (typeof v.literalString === "string") return v.literalString;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  if (typeof v === "object") {
+    if (typeof v.literalString === "string") return v.literalString;
+    if (typeof v.literal === "string") return v.literal;
+    if (typeof v.stringLiteral === "string") return v.stringLiteral;
+    if (typeof v.value === "string") return String(v.value);
+    if (typeof v.text === "string") return v.text;
+    if (typeof v.path === "string") return v.path;
+  }
   return "";
 }
 
 function childIds(props) {
+  if (!props || typeof props !== "object") return [];
   const ids = [];
-  if (props && typeof props.child === "string") ids.push(props.child);
-  const ch = props && props.children;
-  if (ch && Array.isArray(ch.explicitList)) {
-    for (const c of ch.explicitList) if (typeof c === "string") ids.push(c);
+
+  // Single child
+  if (typeof props.child === "string") ids.push(props.child);
+  else if (props.child && typeof props.child === "object") {
+    if (typeof props.child.id === "string") ids.push(props.child.id);
+    else if (typeof props.child.literalString === "string") ids.push(props.child.literalString);
   }
+
+  // Children list
+  const ch = props.children || props.items || props.components;
+  if (Array.isArray(ch)) {
+    for (const c of ch) {
+      if (typeof c === "string") ids.push(c);
+      else if (c && typeof c === "object") {
+        if (typeof c.id === "string") ids.push(c.id);
+        else if (typeof c.literalString === "string") ids.push(c.literalString);
+      }
+    }
+  } else if (ch && typeof ch === "object") {
+    const list = ch.explicitList || ch.list || ch.items;
+    if (Array.isArray(list)) {
+      for (const c of list) {
+        if (typeof c === "string") ids.push(c);
+        else if (c && typeof c === "object") {
+          if (typeof c.id === "string") ids.push(c.id);
+          else if (typeof c.literalString === "string") ids.push(c.literalString);
+        }
+      }
+    }
+  }
+
   return ids;
 }
 
@@ -512,49 +589,85 @@ function buildNode(id, comps, seen) {
   seen.add(id);
   const spec = comps[id];
   if (!spec || typeof spec !== "object") return null;
-  const type = Object.keys(spec)[0];
-  const props = spec[type] || {};
+
+  // Unpack component wrapper if present (e.g. { id: "c1", component: { Card: {...} } })
+  const compBody = spec.component || spec;
+  const type = Object.keys(compBody).filter(k => k !== "id" && k !== "weight")[0];
+  if (!type) return null;
+  const props = compBody[type] || {};
   const kids = () => childIds(props).map(cid => buildNode(cid, comps, seen)).filter(Boolean);
 
-  switch (type) {
-    case "Card": {
+  const normalizedType = String(type).toLowerCase();
+
+  switch (normalizedType) {
+    case "card": {
       const d = el("div", "a2card"); 
       kids().forEach(n => d.appendChild(n)); 
       return d;
     }
-    case "Column":
-    case "List": {
-      const horizontal = type === "List" && props.direction === "horizontal";
+    case "column":
+    case "list":
+    case "stack":
+    case "section":
+    case "container":
+    case "box":
+    case "verticallayout": {
+      const horizontal = normalizedType === "list" && props.direction === "horizontal";
       const d = el("div", horizontal ? "a2row" : "a2col"); 
       kids().forEach(n => d.appendChild(n)); 
       return d;
     }
-    case "Row": {
+    case "row":
+    case "flex":
+    case "horizontallayout":
+    case "headergroup": {
       const d = el("div", "a2row" + (props.distribution === "spaceBetween" ? " between" : ""));
       kids().forEach(n => d.appendChild(n)); 
       return d;
     }
-    case "Text": {
+    case "text":
+    case "heading":
+    case "subheading":
+    case "title":
+    case "caption":
+    case "header":
+    case "label":
+    case "paragraph": {
       const t = el("div", "a2text");
-      const hint = String(props.usageHint || "body").toLowerCase();
-      if (["h1", "h2", "h3", "h4", "h5", "h6"].includes(hint)) t.classList.add("a2-" + hint);
-      else if (hint === "caption") t.classList.add("a2-caption");
-      t.textContent = boundStr(props.text);
+      const hint = String(props.usageHint || normalizedType || "body").toLowerCase();
+      if (["h1", "h2", "h3", "h4", "h5", "h6", "heading", "title"].includes(hint)) {
+        t.classList.add("a2-h" + (hint.startsWith("h") && hint.length === 2 ? hint.slice(1) : "2"));
+      } else if (["subheading", "h3", "h4"].includes(hint)) {
+        t.classList.add("a2-h3");
+      } else if (["caption", "label"].includes(hint)) {
+        t.classList.add("a2-caption");
+      }
+      const rawText = boundStr(props.text || props.content || props.value || props.title || props.body);
+      t.textContent = rawText;
+      if (!rawText && kids().length > 0) {
+        kids().forEach(n => t.appendChild(n));
+      }
       return t;
     }
-    case "Divider":
+    case "divider":
+    case "separator":
       return el("hr", "a2divider");
-    case "Image": {
+    case "image": {
       const src = boundStr(props.url || props.src);
-      if (!/^https?:\/\//i.test(src)) return null;
+      if (!/^https?:\/\//i.test(src)) {
+        const altTxt = boundStr(props.alt) || "Image generated (view in artifacts)";
+        return el("div", "a2badge", "🖼️ " + altTxt);
+      }
       const img = el("img", "a2img"); 
       img.src = src; 
-      img.alt = boundStr(props.alt) || ""; 
+      img.alt = boundStr(props.alt) || "Generated image"; 
       return img;
     }
-    case "Video": {
+    case "video": {
       const src = boundStr(props.url || props.src);
-      if (!/^https?:\/\//i.test(src)) return null;
+      if (!/^https?:\/\//i.test(src)) {
+        return el("div", "a2badge", "🎥 Video generated");
+      }
       const vid = el("video", "a2img"); 
       vid.src = src; 
       vid.controls = true;
@@ -564,13 +677,49 @@ function buildNode(id, comps, seen) {
       vid.playsInline = true;
       return vid;
     }
-    case "Icon": {
+    case "icon": {
       const s = el("span", "material-symbols-outlined"); 
-      s.textContent = iconName(boundStr(props.name) || props.name); 
+      s.textContent = iconName(boundStr(props.name) || props.name || "info"); 
       return s;
     }
-    default:
-      return null;
+    case "badge":
+    case "chip":
+    case "tag":
+    case "pill":
+    case "status": {
+      const txt = boundStr(props.text || props.label || props.value || props.name);
+      const b = el("span", "a2badge", txt || "Status");
+      kids().forEach(n => b.appendChild(n));
+      return b;
+    }
+    case "button":
+    case "link":
+    case "action": {
+      const label = boundStr(props.text || props.label || props.title || props.url);
+      const url = boundStr(props.url || props.href);
+      if (url && /^https?:\/\//i.test(url)) {
+        const a = el("a", "a2btn", label || "Open Link");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        return a;
+      }
+      const btn = el("button", "a2btn", label || "Click");
+      btn.type = "button";
+      return btn;
+    }
+    case "spacer":
+      return el("div", "a2spacer");
+    default: {
+      // Generic fallback for any unrecognized component: container div
+      const d = el("div", "a2col");
+      kids().forEach(n => d.appendChild(n));
+      if (d.childNodes.length === 0) {
+        const txt = boundStr(props.text || props.label || props.value);
+        if (txt) d.appendChild(el("div", "a2text", txt));
+      }
+      return d.childNodes.length > 0 ? d : null;
+    }
   }
 }
 
@@ -578,18 +727,29 @@ function renderSurface(messages, container) {
   const comps = {};
   const roots = [];
   for (const m of messages) {
-    if (m.beginRendering && typeof m.beginRendering.root === "string") roots.push(m.beginRendering.root);
+    if (!m) continue;
+    if (m.beginRendering && typeof m.beginRendering.root === "string") {
+      roots.push(m.beginRendering.root);
+    }
     const su = m.surfaceUpdate;
     if (su && Array.isArray(su.components)) {
-      for (const c of su.components) if (c && c.id && c.component) comps[c.id] = c.component;
+      for (const c of su.components) {
+        if (c && c.id) {
+          comps[c.id] = c;
+        }
+      }
     }
   }
   let rootIds = roots.filter(r => comps[r]);
   if (rootIds.length === 0) {
     const referenced = new Set();
     for (const id in comps) { 
-      const spec = comps[id]; 
-      childIds(spec[Object.keys(spec)[0]] || {}).forEach(c => referenced.add(c)); 
+      const spec = comps[id];
+      const compBody = spec.component || spec;
+      const type = Object.keys(compBody).filter(k => k !== "id" && k !== "weight")[0];
+      if (type) {
+        childIds(compBody[type] || {}).forEach(c => referenced.add(c)); 
+      }
     }
     rootIds = Object.keys(comps).filter(id => !referenced.has(id));
   }
@@ -604,11 +764,17 @@ function renderSurface(messages, container) {
 function flattenText(messages) {
   const out = [];
   for (const m of messages) {
+    if (!m) continue;
     const su = m.surfaceUpdate;
     if (su && Array.isArray(su.components)) {
       for (const c of su.components) {
-        if (c && c.component && c.component.Text) {
-          out.push(boundStr(c.component.Text.text));
+        if (c) {
+          const compBody = c.component || c;
+          const textSpec = compBody.Text || compBody.Heading || compBody.Subheading || compBody.Title;
+          if (textSpec) {
+            const txt = boundStr(textSpec.text || textSpec.content || textSpec.value);
+            if (txt) out.push(txt);
+          }
         }
       }
     }
@@ -618,10 +784,13 @@ function flattenText(messages) {
 
 function extractEmbeddedA2UI(text) {
   const items = [];
-  const regex = /<a2ui-json>\s*([\s\S]*?)\s*<\/a2ui-json>|<a2a_datapart_json>\s*([\s\S]*?)\s*<\/a2a_datapart_json>/g;
+  if (!text) return items;
+
+  // 1. Check for <a2ui-json> or <a2a_datapart_json> tags
+  const tagRegex = /<(a2ui-json|a2a_datapart_json)>\s*([\s\S]*?)\s*<\/\1>/g;
   let match;
-  while ((match = regex.exec(text)) !== null) {
-    const jsonStr = match[1] || match[2];
+  while ((match = tagRegex.exec(text)) !== null) {
+    const jsonStr = match[2].trim();
     try {
       const parsed = JSON.parse(jsonStr);
       if (Array.isArray(parsed)) items.push(...parsed);
@@ -631,11 +800,36 @@ function extractEmbeddedA2UI(text) {
       } else if (typeof parsed === 'object') items.push(parsed);
     } catch (e) {}
   }
+  if (items.length > 0) return items;
+
+  // 2. Check for markdown codeblocks containing A2UI JSON
+  const codeRegex = /```(?:json)?\s*([\[{][\s\S]*?[\]}])\s*```/g;
+  while ((match = codeRegex.exec(text)) !== null) {
+    try {
+      const parsed = JSON.parse(match[1].trim());
+      if (Array.isArray(parsed) && parsed.some(x => x && (x.beginRendering || x.surfaceUpdate || x.dataModelUpdate))) {
+        items.push(...parsed);
+      } else if (parsed && (parsed.beginRendering || parsed.surfaceUpdate || parsed.dataModelUpdate)) {
+        items.push(parsed);
+      }
+    } catch (e) {}
+  }
+
   return items;
 }
 
 function cleanTextAroundA2UI(text) {
-  return text.replace(/<a2ui-json>[\s\S]*?<\/a2ui-json>|<a2a_datapart_json>[\s\S]*?<\/a2a_datapart_json>/g, '').trim();
+  if (!text) return "";
+  let clean = text.replace(/<(a2ui-json|a2a_datapart_json)>[\s\S]*?<\/\1>/g, '');
+  clean = clean.replace(/```(?:json)?\s*([\[{][\s\S]*?[\]}])\s*```/g, function(m, p1) {
+    try {
+      const parsed = JSON.parse(p1.trim());
+      if (Array.isArray(parsed) && parsed.some(x => x && (x.beginRendering || x.surfaceUpdate))) return '';
+      if (parsed && (parsed.beginRendering || parsed.surfaceUpdate)) return '';
+    } catch(e) {}
+    return m;
+  });
+  return clean.trim();
 }
 
 function renderReply(b, parts) {

@@ -165,56 +165,48 @@ def _component_ids_and_refs(components: list) -> tuple[set, set]:
     for c in components:
         if not isinstance(c, dict):
             continue
-        if "id" in c:
+        if "id" in c and isinstance(c["id"], str):
             ids.add(c["id"])
-        comp = c.get("component")
+        comp = c.get("component") if "component" in c else c
         if not isinstance(comp, dict):
             continue
-        for spec in comp.values():  # e.g. {"Card": {...}} / {"Column": {...}}
-            if not isinstance(spec, dict):
+        for k, spec in comp.items():
+            if k in ("id", "weight") or not isinstance(spec, dict):
                 continue
-            if isinstance(spec.get("child"), str):
-                refs.add(spec["child"])
-            children = spec.get("children")
-            if isinstance(children, dict):
-                for cid in children.get("explicitList") or []:
+            child = spec.get("child")
+            if isinstance(child, str):
+                refs.add(child)
+            elif isinstance(child, dict) and isinstance(child.get("id"), str):
+                refs.add(child["id"])
+
+            children = spec.get("children") or spec.get("items") or spec.get("components")
+            if isinstance(children, list):
+                for cid in children:
                     if isinstance(cid, str):
                         refs.add(cid)
+                    elif isinstance(cid, dict) and isinstance(cid.get("id"), str):
+                        refs.add(cid["id"])
+            elif isinstance(children, dict):
+                explicit = children.get("explicitList") or children.get("list") or children.get("items")
+                if isinstance(explicit, list):
+                    for cid in explicit:
+                        if isinstance(cid, str):
+                            refs.add(cid)
+                        elif isinstance(cid, dict) and isinstance(cid.get("id"), str):
+                            refs.add(cid["id"])
     return ids, refs
 
 
 def _surface_is_renderable(messages: list[dict]) -> bool:
-    """True only if the messages form a surface adk web can actually draw.
-
-    Guards against the two blank-card failure modes flash models produce:
-      * a lone `beginRendering` with no `surfaceUpdate` body (malformed JSON), and
-      * a surface whose `root` (or a child ref) points at an id that was never
-        defined — the whole tree then renders as nothing.
-    dataModelUpdate / deleteSurface messages are always considered renderable.
-    """
-    all_ids: set = set()
-    all_refs: set = set()
-    roots: list = []
-    has_body = False
+    """True if messages contain a surface body that can be rendered."""
     for m in messages:
         if "dataModelUpdate" in m or "deleteSurface" in m:
             return True
-        br = m.get("beginRendering")
-        if isinstance(br, dict) and isinstance(br.get("root"), str):
-            roots.append(br["root"])
         su = m.get("surfaceUpdate")
         if isinstance(su, dict) and su.get("components"):
-            has_body = True
-            ids, refs = _component_ids_and_refs(su["components"])
-            all_ids |= ids
-            all_refs |= refs
-    if not has_body:
-        return False
-    if any(root not in all_ids for root in roots):
-        return False  # root points at an undefined component -> blank
-    if all_refs - all_ids:
-        return False  # dangling child references -> blank
-    return True
+            return True
+    return False
+
 
 
 def a2ui_callback(
