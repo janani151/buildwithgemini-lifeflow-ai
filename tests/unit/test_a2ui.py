@@ -42,3 +42,14 @@ def test_surface_is_renderable():
     ids, refs = _component_ids_and_refs(messages[1]["surfaceUpdate"]["components"])
     assert "r1" in ids
     assert "c1" in refs
+
+
+def test_parse_a2ui_from_bare_json():
+    text = '[{"beginRendering": {"root": "r1", "surfaceId": "s1"}}]'
+    parsed = _parse_a2ui_from_text(text)
+    assert len(parsed) == 1
+    assert parsed[0]["beginRendering"]["root"] == "r1"
+
+    clean = _clean_text_around_a2ui(text)
+    assert clean == ""
+

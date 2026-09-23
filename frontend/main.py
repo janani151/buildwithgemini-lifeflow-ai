@@ -129,8 +129,9 @@ import re
 
 
 def _parse_a2ui_from_text(text: str) -> list[dict]:
-    """Parse embedded <a2ui-json>, <a2a_datapart_json>, or markdown A2UI JSON blocks from raw text."""
+    """Parse embedded <a2ui-json>, <a2a_datapart_json>, markdown A2UI JSON, or bare JSON blocks from raw text."""
     items = []
+    # 1. Look for tags <a2ui-json> or <a2a_datapart_json>
     for match in re.finditer(r"<(a2ui-json|a2a_datapart_json)>\s*(.*?)\s*</\1>", text, re.DOTALL):
         raw_json = match.group(2).strip()
         try:
@@ -144,7 +145,8 @@ def _parse_a2ui_from_text(text: str) -> list[dict]:
         except Exception:
             pass
 
-    for match in re.finditer(r"```json\s*([\[\{][\s\S]*?\"beginRendering\"[\s\S]*?)\s*```", text):
+    # 2. Look for markdown codeblocks containing beginRendering or surfaceUpdate
+    for match in re.finditer(r"```(?:json)?\s*([\[\{][\s\S]*?(?:\"beginRendering\"|\"surfaceUpdate\")[\s\S]*?)\s*```", text):
         raw_json = match.group(1).strip()
         try:
             parsed = json.loads(raw_json)
@@ -157,12 +159,61 @@ def _parse_a2ui_from_text(text: str) -> list[dict]:
         except Exception:
             pass
 
-    return items
+    # 3. Look for bare JSON arrays or objects if no items found yet
+    if not items and any(k in text for k in ("beginRendering", "surfaceUpdate", "dataModelUpdate")):
+        stripped = text.strip()
+        if (stripped.startswith("[") and stripped.endswith("]")) or (stripped.startswith("{") and stripped.endswith("}")):
+            try:
+                parsed = json.loads(stripped)
+                if isinstance(parsed, list):
+                    items.extend(parsed)
+                elif isinstance(parsed, dict) and "data" in parsed:
+                    items.append(parsed["data"])
+                elif isinstance(parsed, dict):
+                    items.append(parsed)
+            except Exception:
+                pass
+
+        if not items:
+            decoder = json.JSONDecoder()
+            idx = 0
+            n = len(text)
+            while idx < n:
+                while idx < n and text[idx] not in "{[":
+                    idx += 1
+                if idx >= n:
+                    break
+                try:
+                    val, end = decoder.raw_decode(text, idx)
+                    if isinstance(val, list):
+                        items.extend(val)
+                    elif isinstance(val, dict):
+                        items.append(val)
+                    idx = end
+                except Exception:
+                    idx += 1
+
+    valid_items = []
+    for item in items:
+        if isinstance(item, dict):
+            inner = item.get("data")
+            if isinstance(inner, dict) and any(k in inner for k in ("beginRendering", "surfaceUpdate", "dataModelUpdate", "deleteSurface")):
+                valid_items.append(inner)
+            elif any(k in item for k in ("beginRendering", "surfaceUpdate", "dataModelUpdate", "deleteSurface")):
+                valid_items.append(item)
+
+    return valid_items
 
 
 def _clean_text_around_a2ui(text: str) -> str:
     cleaned = re.sub(r"<(a2ui-json|a2a_datapart_json)>\s*[\s\S]*?\s*</\1>", "", text)
-    cleaned = re.sub(r"```json\s*[\[\{][\s\S]*?\"beginRendering\"[\s\S]*?```", "", cleaned)
+    cleaned = re.sub(r"```(?:json)?\s*[\[\{][\s\S]*?(?:\"beginRendering\"|\"surfaceUpdate\")[\s\S]*?```", "", cleaned)
+    if any(k in cleaned for k in ("beginRendering", "surfaceUpdate", "dataModelUpdate")):
+        stripped = cleaned.strip()
+        if (stripped.startswith("[") and stripped.endswith("]")) or (stripped.startswith("{") and stripped.endswith("}")):
+            return ""
+        cleaned = re.sub(r"\[[\s\S]*?(?:\"beginRendering\"|\"surfaceUpdate\")[\s\S]*?\]", "", cleaned)
+        cleaned = re.sub(r"\{[\s\S]*?(?:\"beginRendering\"|\"surfaceUpdate\")[\s\S]*?\}", "", cleaned)
     return cleaned.strip()
 
 
