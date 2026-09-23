@@ -24,8 +24,8 @@ async def record_demo():
         )
         page = await context.new_page()
 
-        print("🌐 Navigating to local app at http://127.0.0.1:8080/...")
-        await page.goto("http://127.0.0.1:8080/", wait_until="networkidle")
+        print("🌐 Navigating to live app at https://lifeflow-ai-258775721753.us-east4.run.app/...")
+        await page.goto("https://lifeflow-ai-258775721753.us-east4.run.app/", wait_until="networkidle")
         await asyncio.sleep(2)
 
         # Turn 1: Core app feature (Task Prioritization & Schedule)
