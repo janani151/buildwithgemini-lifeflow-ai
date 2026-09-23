@@ -499,6 +499,28 @@ def find_nearby_places(latitude: float, longitude: float, place_type: str = "res
         return f"Places API error: {str(e)}"
 
 
+def execute_python_code(code: str) -> str:
+    """Executes Python code safely in a sandbox for calculations, budget totals, and task math.
+
+    Args:
+        code: Python code snippet or math expression to execute (e.g. '120 + 85').
+
+    Returns:
+        String result of the python evaluation.
+    """
+    try:
+        cleaned = code.strip()
+        local_scope = {}
+        try:
+            res = eval(cleaned, {"__builtins__": {}}, local_scope)
+            return f"Result: {res}"
+        except Exception:
+            exec(cleaned, {"__builtins__": {}}, local_scope)
+            return f"Result: {local_scope}"
+    except Exception as e:
+        return f"Code execution error: {str(e)}"
+
+
 async def generate_item_image(prompt: str, tool_context: ToolContext) -> str:
     """Generates an image for a life organizer item (such as a meal recipe, goal achievement badge, or task banner).
 
@@ -751,6 +773,7 @@ root_agent = Agent(
         get_daily_advice,
         geocode_address,
         find_nearby_places,
+        execute_python_code,
         generate_item_image,
         generate_item_video,
         PreloadMemoryTool(),

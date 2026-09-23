@@ -135,18 +135,22 @@ def _parse_a2ui_from_text(text: str) -> list[dict]:
         raw_json = match.group(2).strip()
         try:
             parsed = json.loads(raw_json)
-            if isinstance(parsed, dict) and "data" in parsed:
+            if isinstance(parsed, list):
+                items.extend(parsed)
+            elif isinstance(parsed, dict) and "data" in parsed:
                 items.append(parsed["data"])
             elif isinstance(parsed, dict):
                 items.append(parsed)
         except Exception:
             pass
 
-    for match in re.finditer(r"```json\s*(\{[\s\S]*?\"beginRendering\"[\s\S]*?\})\s*```", text):
+    for match in re.finditer(r"```json\s*([\[\{][\s\S]*?\"beginRendering\"[\s\S]*?)\s*```", text):
         raw_json = match.group(1).strip()
         try:
             parsed = json.loads(raw_json)
-            if isinstance(parsed, dict) and "data" in parsed:
+            if isinstance(parsed, list):
+                items.extend(parsed)
+            elif isinstance(parsed, dict) and "data" in parsed:
                 items.append(parsed["data"])
             elif isinstance(parsed, dict):
                 items.append(parsed)
@@ -158,7 +162,7 @@ def _parse_a2ui_from_text(text: str) -> list[dict]:
 
 def _clean_text_around_a2ui(text: str) -> str:
     cleaned = re.sub(r"<(a2ui-json|a2a_datapart_json)>\s*[\s\S]*?\s*</\1>", "", text)
-    cleaned = re.sub(r"```json\s*\{[\s\S]*?\"beginRendering\"[\s\S]*?\}\s*```", "", cleaned)
+    cleaned = re.sub(r"```json\s*[\[\{][\s\S]*?\"beginRendering\"[\s\S]*?```", "", cleaned)
     return cleaned.strip()
 
 
