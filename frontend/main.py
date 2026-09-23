@@ -314,7 +314,11 @@ async def chat(req: Request):
     return JSONResponse({"parts": parts})
 
 
-# Serve the chat UI (keep this mount last so /chat wins).
+# Serve generated files directory and chat UI
+GENERATED_DIR = os.path.join(os.path.dirname(__file__), "static", "generated")
+os.makedirs(GENERATED_DIR, exist_ok=True)
+app.mount("/generated", StaticFiles(directory=GENERATED_DIR), name="generated_static")
+
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 

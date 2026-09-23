@@ -46,7 +46,7 @@ _FALLBACK_TEXT = (
 # relative path (e.g. "recipe_image_123.png"), which renders as a broken-image
 # icon. We swap those for this short note; the generated media still shows up in
 # the adk web Artifacts panel.
-_HTTP_URL_RE = re.compile(r"^https?://", re.I)
+_HTTP_URL_RE = re.compile(r"^(?:https?://|/)", re.I)
 _IMAGE_NOTE = "Image generated — open the Artifacts panel to view it."
 
 

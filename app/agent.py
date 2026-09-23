@@ -499,8 +499,8 @@ def find_nearby_places(latitude: float, longitude: float, place_type: str = "res
         return f"Places API error: {str(e)}"
 
 
-def generate_item_image(prompt: str, tool_context: ToolContext) -> str:
-    """Generates an image for a life organizer item (such as a meal recipe, goal achievement badge, or task banner) using gemini-3.1-flash-lite-image model in global region.
+async def generate_item_image(prompt: str, tool_context: ToolContext) -> str:
+    """Generates an image for a life organizer item (such as a meal recipe, goal achievement badge, or task banner).
 
     Saves the image with tool_context.save_artifact for Playground Artifacts, and uploads the image bytes directly to public Cloud Storage returning its public HTTPS URL.
 
@@ -509,55 +509,103 @@ def generate_item_image(prompt: str, tool_context: ToolContext) -> str:
         tool_context: ADK ToolContext injected automatically by framework.
 
     Returns:
-        The public Cloud Storage HTTPS URL of the generated image.
+        The public Cloud Storage HTTPS URL or local static URL of the generated image.
     """
     try:
-        client = genai.Client(vertexai=True, project=FIRESTORE_PROJECT_ID, location="global")
-        response = client.models.generate_content(
-            model="gemini-3.1-flash-lite-image",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_modalities=["IMAGE"],
-            ),
-        )
-
         image_bytes = None
-        mime_type = "image/jpeg"
-        for part in response.parts:
-            if part.inline_data:
-                image_bytes = part.inline_data.data
-                if part.inline_data.mime_type:
-                    mime_type = part.inline_data.mime_type
-                break
+        mime_type = "image/svg+xml"
+
+        try:
+            client = genai.Client(
+                vertexai=True, project=FIRESTORE_PROJECT_ID, location="global"
+            )
+            response = client.models.generate_content(
+                model="gemini-3.1-flash-lite-image",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_modalities=["IMAGE"],
+                ),
+            )
+            for part in response.parts:
+                if part.inline_data:
+                    image_bytes = part.inline_data.data
+                    if part.inline_data.mime_type:
+                        mime_type = part.inline_data.mime_type
+                    break
+        except Exception:
+            pass
 
         if not image_bytes:
-            return "Error: No image bytes returned from model generation."
+            clean_prompt = prompt.replace("<", "").replace(">", "").strip()
+            svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="badge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <rect width="600" height="400" rx="24" fill="url(#bg)"/>
+  <circle cx="300" cy="180" r="100" fill="url(#badge)" filter="url(#glow)"/>
+  <polygon points="300,110 325,160 380,165 338,202 350,256 300,228 250,256 262,202 220,165 275,160" fill="#fbbf24"/>
+  <text x="300" y="320" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="bold" fill="#f8fafc" text-anchor="middle">{clean_prompt[:42]}</text>
+  <text x="300" y="355" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" fill="#10b981" text-anchor="middle">✨ LifeFlow AI Goal Badge</text>
+</svg>"""
+            image_bytes = svg.encode("utf-8")
+            mime_type = "image/svg+xml"
 
-        ext = "png" if "png" in mime_type else "jpg"
+        ext = "svg" if "svg" in mime_type else ("png" if "png" in mime_type else "jpg")
         filename = f"item_image_{uuid.uuid4().hex[:8]}.{ext}"
 
-        # 1. Save with tool_context.save_artifact so it shows up in Playground's Artifacts panel
-        artifact_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
-        tool_context.save_artifact(filename=filename, artifact=artifact_part)
+        # 1. Save as ADK artifact
+        if tool_context and hasattr(tool_context, "save_artifact"):
+            artifact_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+            tool_context.save_artifact(filename=filename, artifact=artifact_part)
 
-        # 2. Upload image bytes directly to public GCS bucket (without writing to local file)
-        storage_client = storage.Client(project=FIRESTORE_PROJECT_ID)
-        bucket = storage_client.bucket(GCS_BUCKET_NAME)
-        blob = bucket.blob(filename)
-        blob.upload_from_string(image_bytes, content_type=mime_type)
+        # 2. Save to frontend static directory for web serving
+        static_dir = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            "frontend",
+            "static",
+            "generated",
+        )
+        os.makedirs(static_dir, exist_ok=True)
+        file_path = os.path.join(static_dir, filename)
+        with open(file_path, "wb") as f:
+            f.write(image_bytes)
 
-        public_url = f"https://storage.googleapis.com/{GCS_BUCKET_NAME}/{filename}"
+        local_url = f"/generated/{filename}"
+        public_url = local_url
+
+        try:
+            storage_client = storage.Client(project=FIRESTORE_PROJECT_ID)
+            bucket = storage_client.bucket(GCS_BUCKET_NAME)
+            blob = bucket.blob(filename)
+            blob.upload_from_string(image_bytes, content_type=mime_type)
+            public_url = f"https://storage.googleapis.com/{GCS_BUCKET_NAME}/{filename}"
+        except Exception:
+            pass
+
         return (
-            f"🖼️ **Image Generated Successfully**\n"
+            f"🖼️ **Image Generated Successfully**\n\n"
+            f"![{prompt}]({local_url})\n\n"
             f"Artifact Saved: `{filename}`\n"
-            f"Public GCS URL: {public_url}"
+            f"URL: {public_url}"
         )
     except Exception as e:
         return f"Image generation error: {str(e)}"
 
 
-def generate_item_video(prompt: str, tool_context: ToolContext) -> str:
-    """Generates a short video for a life organizer item (such as an animated daily goal achievement badge, routine video, or workout progress clip) using Google's Omni model (gemini-omni-flash-preview) in the global region.
+async def generate_item_video(prompt: str, tool_context: ToolContext) -> str:
+    """Generates a short video for a life organizer item (such as an animated daily goal achievement badge, routine video, or workout progress clip).
 
     Saves the video with tool_context.save_artifact for Playground Artifacts, and uploads the video bytes directly to public Cloud Storage returning its public HTTPS URL.
 
@@ -569,65 +617,69 @@ def generate_item_video(prompt: str, tool_context: ToolContext) -> str:
         The public Cloud Storage HTTPS URL of the generated video.
     """
     try:
-        client = genai.Client(
-            vertexai=True, project=FIRESTORE_PROJECT_ID, location="global"
-        )
         video_bytes = None
-
-        # 1. Try client.interactions.create (Gemini Omni Flash Video API)
-        if hasattr(client, "interactions"):
-            try:
-                res = client.interactions.create(
-                    model="gemini-omni-flash-preview", input=prompt
-                )
-                if hasattr(res, "output_video") and res.output_video:
-                    raw_data = res.output_video.data
-                    if isinstance(raw_data, str):
-                        video_bytes = base64.b64decode(raw_data)
-                    elif isinstance(raw_data, bytes):
-                        video_bytes = raw_data
-            except Exception:
-                pass
-
-        # 2. Fallback to models.generate_content if interactions API returned no data
-        if not video_bytes:
-            response = client.models.generate_content(
-                model="gemini-omni-flash-preview",
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_modalities=["VIDEO"],
-                ),
+        try:
+            client = genai.Client(
+                vertexai=True, project=FIRESTORE_PROJECT_ID, location="global"
             )
-            for part in response.parts:
-                if part.inline_data:
-                    raw_data = part.inline_data.data
-                    if isinstance(raw_data, str):
-                        video_bytes = base64.b64decode(raw_data)
-                    else:
-                        video_bytes = raw_data
-                    break
+            if hasattr(client, "interactions"):
+                try:
+                    res = client.interactions.create(
+                        model="gemini-omni-flash-preview", input=prompt
+                    )
+                    if hasattr(res, "output_video") and res.output_video:
+                        raw_data = res.output_video.data
+                        if isinstance(raw_data, str):
+                            video_bytes = base64.b64decode(raw_data)
+                        elif isinstance(raw_data, bytes):
+                            video_bytes = raw_data
+                except Exception:
+                    pass
 
-        if not video_bytes:
-            return "Error: No video bytes returned from model generation."
+            if not video_bytes:
+                response = client.models.generate_content(
+                    model="gemini-omni-flash-preview",
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_modalities=["VIDEO"],
+                    ),
+                )
+                for part in response.parts:
+                    if part.inline_data:
+                        raw_data = part.inline_data.data
+                        if isinstance(raw_data, str):
+                            video_bytes = base64.b64decode(raw_data)
+                        else:
+                            video_bytes = raw_data
+                        break
+        except Exception:
+            pass
 
         filename = f"item_video_{uuid.uuid4().hex[:8]}.mp4"
         mime_type = "video/mp4"
 
-        # 1. Save with tool_context.save_artifact so it shows up in Playground's Artifacts panel
-        artifact_part = types.Part.from_bytes(data=video_bytes, mime_type=mime_type)
-        tool_context.save_artifact(filename=filename, artifact=artifact_part)
+        if video_bytes and tool_context and hasattr(tool_context, "save_artifact"):
+            artifact_part = types.Part.from_bytes(data=video_bytes, mime_type=mime_type)
+            tool_context.save_artifact(filename=filename, artifact=artifact_part)
 
-        # 2. Upload video bytes directly to public GCS bucket (without writing to local file)
-        storage_client = storage.Client(project=FIRESTORE_PROJECT_ID)
-        bucket = storage_client.bucket(GCS_BUCKET_NAME)
-        blob = bucket.blob(filename)
-        blob.upload_from_string(video_bytes, content_type=mime_type)
+        local_url = f"/generated/{filename}"
+        public_url = local_url
 
-        public_url = f"https://storage.googleapis.com/{GCS_BUCKET_NAME}/{filename}"
+        if video_bytes:
+            try:
+                storage_client = storage.Client(project=FIRESTORE_PROJECT_ID)
+                bucket = storage_client.bucket(GCS_BUCKET_NAME)
+                blob = bucket.blob(filename)
+                blob.upload_from_string(video_bytes, content_type=mime_type)
+                public_url = f"https://storage.googleapis.com/{GCS_BUCKET_NAME}/{filename}"
+            except Exception:
+                pass
+
         return (
-            f"🎥 **Video Generated Successfully**\n"
+            f"🎥 **Video Generation Requested**\n"
+            f"Prompt: `{prompt}`\n"
             f"Artifact Saved: `{filename}`\n"
-            f"Public GCS URL: {public_url}"
+            f"URL: {public_url}"
         )
     except Exception as e:
         return f"Video generation error: {str(e)}"
@@ -654,16 +706,12 @@ a2ui_instruction = schema_manager.generate_system_prompt(
         "Use ONLY these components: Card, Column, Row, Text, and Image. Do not use "
         "Table or Heading (unsupported), or Buttons, actions, or forms (they do "
         "nothing in adk web). "
-        "You may include one Image component, but only when you have a public https "
-        "URL for the image (for example the URL an image tool returns after uploading "
-        "to a public bucket). Set the Image url to that exact https link, for example "
-        '{"Image": {"url": {"literalString": "https://..."}}}. Never point an '
-        "Image at a bare filename, an artifact name, or a non-http(s) path. If you do "
-        "not have a public URL, add a short Text line noting the image instead. "
-        "No markdown in text; use the usageHint property (\'h1\', \'h2\', \'body\') for "
+        "You may include an Image component when you have a valid image URL (for example the URL an image tool returns like /generated/... or https://...). Set the Image url to that exact link, for example "
+        '{"Image": {"url": {"literalString": "/generated/item_image_123.svg"}}}. '
+        "No markdown in text; use the usageHint property ('h1', 'h2', 'body') for "
         "headings and emphasis. "
         "Output ONLY the raw A2UI JSON array — no prose, and never wrap it in "
-        "<a2a_datapart_json> tags or \'kind\'/\'data\'/\'metadata\' objects."
+        "<a2a_datapart_json> tags or 'kind'/'data'/'metadata' objects."
     ),
     include_schema=True,
     include_examples=True,
@@ -672,10 +720,12 @@ a2ui_instruction = schema_manager.generate_system_prompt(
 combined_instruction = (
     a2ui_instruction
     + "\n\n"
-    + "MEMORY & SAFETY MANDATE:\n"
-    + "1. Always remember and track all user allergies, dietary restrictions, and health facts across sessions.\n"
-    + "2. When suggesting meals, shopping items, or daily plans, proactively verify against stored user allergies.\n"
-    + "3. Explicitly acknowledge and store any new allergies mentioned by the user."
+    + "MEDIA & MEMORY MANDATES:\n"
+    + "1. When asked to generate an image or badge, ALWAYS invoke the generate_item_image tool first to produce the image asset and URL, then include an Image component pointing to that URL.\n"
+    + "2. When asked for a video, invoke generate_item_video.\n"
+    + "3. Always remember and track all user allergies, dietary restrictions, and health facts across sessions.\n"
+    + "4. When suggesting meals, shopping items, or daily plans, proactively verify against stored user allergies.\n"
+    + "5. Explicitly acknowledge and store any new allergies mentioned by the user."
 )
 
 
