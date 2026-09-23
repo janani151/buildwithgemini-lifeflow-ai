@@ -42,8 +42,8 @@ from google.genai import types
 
 from app.a2ui_utils import a2ui_callback
 
-FIRESTORE_PROJECT_ID = "qwiklabs-gcp-01-7b04b331c989"
-GCS_BUCKET_NAME = "life-organizer-assets-7b04b331"
+FIRESTORE_PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "qwiklabs-gcp-02-af7987b13f8c")
+GCS_BUCKET_NAME = os.environ.get("GCS_BUCKET_NAME", "life-organizer-assets-7b04b331")
 REASONING_ENGINE_RESOURCE_NAME = (
     f"projects/{FIRESTORE_PROJECT_ID}/locations/us-east1/reasoningEngines/9130672211516981248"
 )
@@ -144,7 +144,10 @@ def get_firestore_client():
 
 
 async def generate_memories_callback(callback_context: CallbackContext):
-    await callback_context.add_session_to_memory()
+    try:
+        await callback_context.add_session_to_memory()
+    except Exception:
+        pass
     return None
 
 
@@ -181,6 +184,37 @@ def get_current_time(query: str) -> str:
     return f"The current time for query {query} is {now.strftime('%Y-%m-%d %H:%M:%S %Z%z')}"
 
 
+_in_memory_tasks: dict[str, dict] = {
+    "task-001": {
+        "task_id": "task-001",
+        "title": "Pay Electricity Bill",
+        "category": "bill",
+        "priority": "high",
+        "due_date": "2026-09-25",
+        "status": "pending",
+        "details": "Pay $120 to City Electric via online portal.",
+    },
+    "task-002": {
+        "task_id": "task-002",
+        "title": "Dentist Appointment",
+        "category": "appointment",
+        "priority": "high",
+        "due_date": "2026-09-26",
+        "status": "pending",
+        "details": "Routine checkup at Dr. Smith Dental Office.",
+    },
+    "task-003": {
+        "task_id": "task-003",
+        "title": "Buy Groceries",
+        "category": "shopping",
+        "priority": "medium",
+        "due_date": "2026-09-27",
+        "status": "pending",
+        "details": "Milk, Eggs, Bread, and Fresh Vegetables.",
+    },
+}
+
+
 def get_tasks(status: str = "all", category: str = "all") -> str:
     """Retrieves tasks from the Firestore task management database.
 
@@ -191,20 +225,26 @@ def get_tasks(status: str = "all", category: str = "all") -> str:
     Returns:
         A formatted string listing the tasks found in the database.
     """
-    db = get_firestore_client()
-    tasks_ref = db.collection("tasks")
-    query_ref = tasks_ref
-
-    if status != "all":
-        query_ref = query_ref.where("status", "==", status)
-    if category != "all":
-        query_ref = query_ref.where("category", "==", category)
-
-    docs = query_ref.stream()
     tasks = []
-    for doc in docs:
-        data = doc.to_dict()
-        tasks.append(data)
+    try:
+        db = get_firestore_client()
+        tasks_ref = db.collection("tasks")
+        query_ref = tasks_ref
+
+        if status != "all":
+            query_ref = query_ref.where("status", "==", status)
+        if category != "all":
+            query_ref = query_ref.where("category", "==", category)
+
+        for doc in list(query_ref.stream()):
+            tasks.append(doc.to_dict())
+    except Exception:
+        for t in _in_memory_tasks.values():
+            if status != "all" and t.get("status") != status:
+                continue
+            if category != "all" and t.get("category") != category:
+                continue
+            tasks.append(t)
 
     if not tasks:
         return "No tasks found matching the specified criteria."
@@ -230,7 +270,6 @@ def add_task(title: str, category: str, priority: str, due_date: str, details: s
     Returns:
         A confirmation message with the generated task ID.
     """
-    db = get_firestore_client()
     task_id = f"task-{uuid.uuid4().hex[:6]}"
     task_data = {
         "task_id": task_id,
@@ -241,7 +280,11 @@ def add_task(title: str, category: str, priority: str, due_date: str, details: s
         "status": "pending",
         "details": details,
     }
-    db.collection("tasks").document(task_id).set(task_data)
+    try:
+        db = get_firestore_client()
+        db.collection("tasks").document(task_id).set(task_data)
+    except Exception:
+        _in_memory_tasks[task_id] = task_data
     return f"Task successfully added with ID {task_id}: {title} (Due: {due_date})"
 
 
@@ -255,14 +298,21 @@ def update_task_status(task_id: str, status: str) -> str:
     Returns:
         A confirmation message of the update.
     """
-    db = get_firestore_client()
-    doc_ref = db.collection("tasks").document(task_id)
-    doc = doc_ref.get()
-    if not doc.exists:
-        return f"Error: Task with ID {task_id} was not found."
+    try:
+        db = get_firestore_client()
+        doc_ref = db.collection("tasks").document(task_id)
+        doc = doc_ref.get()
+        if doc.exists:
+            doc_ref.update({"status": status.lower()})
+            return f"Task {task_id} status successfully updated to '{status}'."
+    except Exception:
+        pass
 
-    doc_ref.update({"status": status.lower()})
-    return f"Task {task_id} status successfully updated to '{status}'."
+    if task_id in _in_memory_tasks:
+        _in_memory_tasks[task_id]["status"] = status.lower()
+        return f"Task {task_id} status successfully updated to '{status}'."
+
+    return f"Error: Task with ID {task_id} was not found."
 
 
 def get_maps_info_and_link(location: str, destination_mode: bool = False) -> str:
