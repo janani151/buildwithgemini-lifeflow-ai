@@ -46,7 +46,7 @@ from a2a.types import (
     TransportProtocol,
 )
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 RESOURCE = os.environ.get(
@@ -375,6 +375,15 @@ os.makedirs(GENERATED_DIR, exist_ok=True)
 app.mount("/generated", StaticFiles(directory=GENERATED_DIR), name="generated_static")
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return FileResponse(os.path.join(STATIC_DIR, "icon.png"))
+
+@app.get("/icon.png", include_in_schema=False)
+async def icon_png():
+    return FileResponse(os.path.join(STATIC_DIR, "icon.png"))
+
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 
 
